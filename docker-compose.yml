@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgis/postgis:13-3.4
+    environment:
+      POSTGRES_USER: ${PG_SUPERUSER:?PG_SUPERUSER is required}
+      POSTGRES_PASSWORD: ${PG_SUPERUSER_PASSWORD:?PG_SUPERUSER_PASSWORD is required} 
+      POSTGRES_DB: postgres
+    ports:
+      - "${PG_HOST_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/posrgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_SUPERUSER:-postgres} -d postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [gisnet]  
+  sqitch:
+    image: sqitch/sqitch:v1.6.0
+    working_dir: /work/migrations
+    volumes:
+      - ./migrations:/work/migrations
+    networks: [gisnet]
+  sqlfluff:
+    image: sqlfluff/sqlfluff:4.3.0
+    working_dir: /project
+    volumes:
+      - .:/project:ro
+    command: lint migrations/deploy/ migrations/revert migrations/verify bootstra/
+
+volumes:
+  pgdata:
+
+networks:
+  gisnet:
+    driver: bridge
