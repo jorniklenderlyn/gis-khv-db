@@ -12,10 +12,20 @@ psql \
 
 echo "==> Creating database: ${SHARD_NAME}"
 
-psql \
+if psql \
     -d postgres \
-    -v shard_name="$SHARD_NAME" \
-    -f /bootstrap/02_database.sql
+    -tAc "SELECT 1 FROM pg_database WHERE datname = '${SHARD_NAME}'" \
+    | grep -q 1
+then
+    echo "==> Database '${SHARD_NAME}' already exists, continuing"
+else
+    echo "==> Creating database: ${SHARD_NAME}"
+
+    psql \
+        -d postgres \
+        -v shard_name="$SHARD_NAME" \
+        -f /bootstrap/02_database.sql
+fi
 
 echo "==> Installing extensions"
 
