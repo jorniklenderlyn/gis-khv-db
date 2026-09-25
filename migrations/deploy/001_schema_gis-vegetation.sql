@@ -1,4 +1,4 @@
--- Deploy gis-storagef:001_schema_gis-vegetation to pg
+-- Deploy gis-storage:001_schema_gis-vegetation to pg
 
 BEGIN;
 

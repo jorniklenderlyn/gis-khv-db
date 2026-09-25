@@ -1,4 +1,4 @@
--- Deploy gis-storagef:000_schema_accounting to pg
+-- Deploy gis-storage:000_schema_accounting to pg
 
 BEGIN;
 

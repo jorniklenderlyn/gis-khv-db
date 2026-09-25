@@ -1,4 +1,4 @@
-.PHONY: lint migrate psql-root
+.PHONY: lint migrate psql
 
 lint:
 	docker compose run --rm sqlfluff lint \

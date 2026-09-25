@@ -1,4 +1,4 @@
--- Verify gis-storagef:001_schema_gis-vegetation on pg
+-- Verify gis-storage:001_schema_gis-vegetation on pg
 
 BEGIN;
 

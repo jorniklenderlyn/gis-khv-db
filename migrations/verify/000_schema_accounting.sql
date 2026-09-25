@@ -1,4 +1,4 @@
--- Verify gis-storagef:000_schema_accounting on pg
+-- Verify gis-storage:000_schema_accounting on pg
 
 BEGIN;
 

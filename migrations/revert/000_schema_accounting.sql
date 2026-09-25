@@ -1,4 +1,4 @@
--- Revert gis-storagef:000_schema_accounting from pg
+-- Revert gis-storage:000_schema_accounting from pg
 
 BEGIN;
 

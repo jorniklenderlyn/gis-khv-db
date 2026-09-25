@@ -1,5 +1,5 @@
 %syntax-version=1.0.0
-%project=gis-storagef
+%project=gis-storage
   
 000_schema_accounting 2026-09-24T14:33:13Z sqitch <sqitch@f7b748c7f53b> # Change to add:\n \n   000_schema_accounting\n     deploy/000_schema_accounting.sql\n     revert/000_schema_accounting.sql\n     verify/000_schema_accounting.sql\n
 001_schema_gis-vegetation 2026-09-24T14:33:45Z sqitch <sqitch@0a07d4d91474> #  Change to add:\n \n   001_schema_gis-vegetation\n     deploy/001_schema_gis-vegetation.sql\n     revert/001_schema_gis-vegetation.sql\n     verify/001_schema_gis-vegetation.sql\n     

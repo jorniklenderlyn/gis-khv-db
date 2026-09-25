@@ -37,7 +37,7 @@ services:
     working_dir: /project
     volumes:
       - .:/project:ro
-    command: lint migrations/deploy/ migrations/revert migrations/verify bootstra/
+    command: lint migrations/deploy/ migrations/revert migrations/verify bootstrap/
 
 volumes:
   pgdata:
