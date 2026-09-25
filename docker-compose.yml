@@ -11,6 +11,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./config/pg_hba.conf:/etc/lib/postgresql/pg_hba.conf:ro
       - ./bootstrap:/bootstrap:ro
+      - ./bootstrap/init/roles.sql:/docker-entrypoint-initdb.d/01_roles.sql:ro
     command:
       - postgres 
       - -c 

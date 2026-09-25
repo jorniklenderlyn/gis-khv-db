@@ -1,3 +1,4 @@
 .env
 secrets
 .scripts
+migrations/sqitch.conf

@@ -2,17 +2,56 @@
 
 ## Table of Contents
 
-- [Password Setup](#password-setup)
 - [Bootstrap](#bootstrap)
+- [Add a New Region](#add-a-new-region)
+- [Password Setup](#password-setup)
 - [Database Structure](./db.drawio)
 - [Roles](#roles)
 - [Privileges Matrix](./privileges_matrix.ods)
-- [Migration]()
+- [Migration](#migration)
   - [Schema Migration](#schema-migration)
     - [Migration Roles & Ownership](#migration-roles--ownership)
   - [Data Migration](#data-migration)
 - [Monitoring](#monitoring)
 - [Backup](#backup)
+
+## Bootstrap
+
+The bootstrap phase prepares the PostgreSQL cluster before any region database is created. It is split into two stages:
+
+1. **Cluster init** — creates the required PostgreSQL roles. Roles are cluster-level objects shared across all databases, so they are created once per cluster.
+2. **Region provisioning** — creates a per-region database and installs the required extensions in it. This step is repeated for every region added to the cluster.
+
+The cluster init stage runs automatically on the initial container startup from `bootstrap/init/roles.sql` (mounted into PostgreSQL's `docker-entrypoint-initdb.d`). Role creation is idempotent: existing roles are left in place and the script continues.
+
+The region provisioning stage is triggered explicitly by [`make new-region`](#add-a-new-region) and is described in the next section.
+
+## Add a New Region
+
+Each region is stored in its own database inside the shared PostgreSQL cluster. Region names must match the pattern `^[a-z][a-z0-9_]{1,30}$` (start with a lowercase letter; lowercase letters, digits or underscores after; 2–31 characters).
+
+To create a new region and deploy the schema to it, run:
+
+```bash
+make new-region REGION=khv
+```
+
+The target performs the following steps:
+
+* Runs `bootstrap/new-region.sh` inside the `postgres` container, which:
+  * Checks whether the database `$REGION` already exists. If it does, the database is left untouched and only the extensions step is re-run.
+  * Otherwise, creates the database from `bootstrap/region/create_database.sql`.
+  * Installs the required extensions from `bootstrap/region/install_extensions.sql`.
+* Registers a Sqitch target named `$REGION` pointing at `db:pg://gis_migrator@postgres:5432/$REGION` (skipped if the target already exists).
+* Deploys the migrations to the new region with `sqitch deploy $REGION`.
+
+The script is safe to re-run for an existing region: the database creation step is skipped and only extensions are (re)installed. To remove a region, use:
+
+```bash
+make drop-region REGION=khv
+```
+
+This prompts for confirmation, drops the database, and removes the Sqitch target.
 
 ## Password Setup
 
@@ -34,11 +73,6 @@ This approach ensures that role passwords are created locally during database se
 
 The bootstrap phase is responsible for creating the roles and configuring their privileges. Passwords are configured separately after bootstrap.
 
-
-## Bootstrap
-
-The bootstrap process is performed automatically when PostgreSQL is initialized. The `bootstrap/init.sql` script is mounted into the `/docker-entrypoint-initdb.d/` directory and executd by the PostgreSQL Docker entrypoint.
-
 ## Roles
 
 Roles are created during the bootstrap phase because PostgreSQL roles are cluster-level objects and are shared across all databases in the cluster.
@@ -54,8 +88,6 @@ Roles are created during the bootstrap phase because PostgreSQL roles are cluste
 |gis_read_user|Yes  | gis_reader | Login role for users/services that require read-only access |
 |gis_edit     |No   | -          | `gis` database data editor group |
 |gis_edit_user|Yes  | gis_editor | Login role for `gis_editor` uses for editing data in db |
-<!-- |gis_admin      |No   | -          | `gis` database admin group with full caps for manage tables  |
-|gis_admin_user |Yes  | gis_admin  | Login role for `gis_admin` uses for editing data in db and creating new functions triggers | -->
 
 ## Migration
 

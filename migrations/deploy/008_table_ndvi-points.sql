@@ -80,7 +80,7 @@ CREATE TABLE gis_vegetation.ndvi_points (
 
     CONSTRAINT ndvi_points_fk_crop_pixel_result_id
         FOREIGN KEY (crop_pixel_result_id) REFERENCES accounting.crops (id)
-        
+
 ) PARTITION BY LIST (region);
 
 -- these propagate automatically to every current/future partition
