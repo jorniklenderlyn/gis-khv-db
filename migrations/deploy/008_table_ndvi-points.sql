@@ -63,19 +63,24 @@ CREATE TABLE gis_vegetation.ndvi_points (
     ndvi_week_50          float8                           NOT NULL,
     ndvi_week_51          float8                           NOT NULL,
     ndvi_week_52          float8                           NOT NULL,
-    crop_plan_id            int4                           NULL, -- id_crop_plan из xxxx.xxx_list_of_fields (подтягивается триггером)
-    crop_pixel_result_id    int4                           NULL, -- id культуры из accounting.list_of_crops
+    crop_plan_id            int4                           NULL, -- crop_plan_id из gis_vegetation.fields (подтягивается триггером)
+    crop_pixel_result_id    int4                           NULL, -- id культуры из accounting.crops
     field_id                int4                           NOT NULL, -- id поля из xxxx.xxx_list_of_fields
     note                    varchar                        NULL,                  NOT NULL DEFAULT now(),
+
     CONSTRAINT ndvi_points_pk PRIMARY KEY (region, year, pixel_size, version, id),
+
     CONSTRAINT ndvi_points_uq_x_y UNIQUE (region, year, pixel_size, version, x, y),
-    -- NB: adjust these to the real schema/table names in your database
+
     CONSTRAINT ndvi_points_fk_field_id
-        FOREIGN KEY (field_id) REFERENCES accounting.list_of_fields (id),
+        FOREIGN KEY (field_id) REFERENCES gis_vegetation.fields (id),
+
     CONSTRAINT ndvi_points_fk_crop_plan_id
-        FOREIGN KEY (crop_plan_id) REFERENCES accounting.list_of_fields_crop_plan (id),
+        FOREIGN KEY (crop_plan_id) REFERENCES accounting.crops (id),
+
     CONSTRAINT ndvi_points_fk_crop_pixel_result_id
-        FOREIGN KEY (crop_pixel_result_id) REFERENCES accounting.list_of_crops (id)
+        FOREIGN KEY (crop_pixel_result_id) REFERENCES accounting.crops (id)
+        
 ) PARTITION BY LIST (region);
 
 -- these propagate automatically to every current/future partition

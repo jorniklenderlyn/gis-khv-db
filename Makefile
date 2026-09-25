@@ -6,6 +6,10 @@ lint:
 		migrations/revert/ \
 		migrations/verify/ \
 		bootstrap/
+bootstrap:
+    docker compose exec -u postgres postgres \
+	psql -U postgres \
+	-d postgres
 migrate:
 	docker compose run --rm sqitch deploy gis
 psql:
