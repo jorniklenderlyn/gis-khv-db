@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 -- площадь поля в м² (на эллипсоиде, без привязки к зоне UTM)
 CREATE FUNCTION vegetation.set_area()
 RETURNS TRIGGER

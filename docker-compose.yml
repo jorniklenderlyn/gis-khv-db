@@ -3,7 +3,7 @@ services:
     image: postgis/postgis:13-3.4
     environment:
       POSTGRES_USER: ${PG_SUPERUSER:?PG_SUPERUSER is required}
-      POSTGRES_PASSWORD: ${PG_SUPERUSER_PASSWORD:?PG_SUPERUSER_PASSWORD is required} 
+      POSTGRES_PASSWORD: ${PG_SUPERUSER_PASSWORD:?PG_SUPERUSER_PASSWORD is required}
       POSTGRES_DB: postgres
     ports:
       - "${PG_HOST_PORT}:5432"
@@ -13,17 +13,17 @@ services:
       - ./bootstrap:/bootstrap:ro
       - ./bootstrap/init/roles.sql:/docker-entrypoint-initdb.d/01_roles.sql:ro
     command:
-      - postgres 
-      - -c 
+      - postgres
+      - -c
       - hba_file=/etc/lib/postgresql/pg_hba.conf
-      - -c 
+      - -c
       - password_encryption=scram-sha-256
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PG_SUPERUSER:-postgres} -d postgres"]
       interval: 3s
       timeout: 3s
       retries: 20
-    networks: [gisnet]  
+    networks: [gisnet]
   sqitch:
     image: sqitch/sqitch:v1.6.0
     working_dir: /work/migrations

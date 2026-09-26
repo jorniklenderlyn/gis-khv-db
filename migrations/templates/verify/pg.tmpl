@@ -1,0 +1,12 @@
+-- Verify [% project %]:[% change %] on pg
+
+BEGIN;
+
+-- XXX Add verifications here. They must FAIL (raise an error) when the
+-- object is missing; an empty result is treated as success. For example:
+--   SELECT 'schema.table'::regclass;
+--   SELECT 'schema.fn(integer)'::regprocedure;
+--   SELECT col1, col2 FROM schema.table WHERE FALSE;
+--   SELECT 1 / count(*) FROM pg_trigger WHERE tgname = '...';
+
+ROLLBACK;

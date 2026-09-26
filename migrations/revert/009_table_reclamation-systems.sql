@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 DROP TABLE reclamation.reclamation_systems;
 
 COMMIT;

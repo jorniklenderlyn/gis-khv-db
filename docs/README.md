@@ -85,13 +85,32 @@ Roles are created during the bootstrap phase because PostgreSQL roles are cluste
 |gis_app        |No   | -          | Defines privileges required by the webapp |
 |gis_app_user   |Yes  | gis_app    | Webapp's database login; inherits privileges from `gis_app` |
 |gis_read       |No   | -          | Defines read-only privileges |
-|gis_read_user|Yes  | gis_reader | Login role for users/services that require read-only access |
+|gis_read_user|Yes  | gis_read   | Login role for users/services that require read-only access |
 |gis_edit     |No   | -          | `gis` database data editor group |
-|gis_edit_user|Yes  | gis_editor | Login role for `gis_editor` uses for editing data in db |
+|gis_edit_user|Yes  | gis_edit   | Login role for `gis_edit` uses for editing data in db |
+
+### Privileges
+
+Privileges follow a deny-by-default model; see the [Privileges Matrix](./privileges_matrix.ods).
+
+* `PUBLIC` has no access to region databases: `CONNECT`/`TEMPORARY` are revoked and `CREATE` on schema `public` is revoked (`bootstrap/region/database_access.sql`). `USAGE` on schema `public` is kept because PostGIS lives there.
+* `gis_app`, `gis_edit`, `gis_read` get `CONNECT` on the region database (bootstrap) and schema/table privileges from migration `017_privileges`.
+* Tables and partitions created later by `gis_owner` receive the same privileges automatically via `ALTER DEFAULT PRIVILEGES`.
+* Every migration must run `SET LOCAL ROLE gis_owner;` right after `BEGIN;`. `verify/017_privileges.sql` fails if any object in the project schemas is not owned by `gis_owner`.
 
 ## Migration
 
 ### Schema Migration
+
+#### Adding a Migration
+
+Create new changes only through `make add`, so every change starts from the project templates in `migrations/templates/`:
+
+```bash
+make add NAME=018_table_x NOTE="adds x" REQUIRES="010_table_fields 011_table_ndvi-points"
+```
+
+The templates already contain `SET LOCAL ROLE gis_owner;` in deploy/revert and a verify skeleton. Verify scripts must raise an error when an object is missing; a query that returns no rows is treated as success. The plan entry is signed with your `git config user.name` / `user.email`.
 
 #### Migration Roles & Ownership
 
@@ -107,7 +126,7 @@ The purpose of using `SET ROLE gis_owner` is to keep **migration execution** and
 
 * `gis_migrator` — used to authenticate and execute migrations.
 * `gis_owner` — owns schemas, tables, sequences, functions, and other database objects.
-* `gis_app`, `gis_reader`, and other roles receive privileges on these objects but do not own them.
+* `gis_app`, `gis_read`, and other roles receive privileges on these objects but do not own them.
 
 Objects created after `SET ROLE gis_owner` are owned by `gis_owner`. This avoids making the migration login role the owner of database objects and provides a consistent ownership model.
 

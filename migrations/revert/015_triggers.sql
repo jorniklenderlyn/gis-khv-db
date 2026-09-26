@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 DROP TRIGGER evi_points_trg_crop_plan ON vegetation.evi_points;
 DROP TRIGGER evi_points_trg_geom ON vegetation.evi_points;
 DROP TRIGGER ndvi_points_trg_crop_plan ON vegetation.ndvi_points;

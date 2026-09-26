@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 DROP SCHEMA reclamation;
 
 COMMIT;

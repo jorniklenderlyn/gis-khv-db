@@ -1,0 +1,9 @@
+-- Revert [% project %]:[% change %] from pg
+
+BEGIN;
+
+SET LOCAL ROLE gis_owner;
+
+-- XXX Add DDLs here.
+
+COMMIT;

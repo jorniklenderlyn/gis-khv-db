@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 CREATE TABLE vegetation.media (
     id INTEGER GENERATED ALWAYS AS IDENTITY NOT NULL,
     year SMALLINT NOT NULL,
@@ -15,7 +17,7 @@ CREATE TABLE vegetation.media (
         PRIMARY KEY (id),
 
     CONSTRAINT mediadate_reference_uq
-        UNIQUE (reference),
+        UNIQUE (year, reference),
     -- FK
     CONSTRAINT mediadate_field_fk
         FOREIGN KEY (year, field_id)

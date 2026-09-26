@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 CREATE SCHEMA vegetation AUTHORIZATION gis_owner;
 
 COMMIT;

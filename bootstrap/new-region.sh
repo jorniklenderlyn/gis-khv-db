@@ -23,6 +23,8 @@ then
     echo -e "${YELLOW}==> Database '${REGION}' already exists — skipping create.${NC}"
     echo -e "${YELLOW}==> Ensuring extensions are present.${NC}"
     psql -d "$REGION" -f /bootstrap/region/install_extensions.sql
+    echo -e "${YELLOW}==> Ensuring database access is restricted.${NC}"
+    psql -v ON_ERROR_STOP=1 -d "$REGION" -f /bootstrap/region/database_access.sql
     echo -e "${GREEN}==> Region '${REGION}' ready.${NC}"
     exit 0
 fi
@@ -32,5 +34,8 @@ psql -d postgres -v region="$REGION" -f /bootstrap/region/create_database.sql
 
 echo "==> Installing extensions in ${REGION}"
 psql -d "$REGION" -f /bootstrap/region/install_extensions.sql
+
+echo "==> Restricting database access in ${REGION}"
+psql -v ON_ERROR_STOP=1 -d "$REGION" -f /bootstrap/region/database_access.sql
 
 echo -e "${GREEN}==> Region created: ${REGION}${NC}"

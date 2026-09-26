@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 CREATE TABLE accounting.districts (
     id         INTEGER     GENERATED ALWAYS AS IDENTITY,
     name       VARCHAR     NOT NULL,

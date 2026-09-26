@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 CREATE TABLE vegetation.fields (
     id INTEGER GENERATED ALWAYS AS IDENTITY NOT NULL,
     year SMALLINT NOT NULL,

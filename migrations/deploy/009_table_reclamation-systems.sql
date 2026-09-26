@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 CREATE TABLE reclamation.reclamation_systems (
     id INTEGER GENERATED ALWAYS AS IDENTITY NOT NULL,
     name VARCHAR NOT NULL,

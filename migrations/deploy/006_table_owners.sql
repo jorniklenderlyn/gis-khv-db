@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 CREATE TABLE accounting.owners (
 
     id INTEGER GENERATED ALWAYS AS IDENTITY,

@@ -1,0 +1,13 @@
+-- Deploy [% project %]:[% change %] to pg
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+
+BEGIN;
+
+-- objects must be owned by gis_owner (checked by verify/017_privileges.sql)
+SET LOCAL ROLE gis_owner;
+
+-- XXX Add DDLs here.
+
+COMMIT;

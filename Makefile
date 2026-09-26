@@ -1,6 +1,6 @@
 .PHONY: lint up down \
 		new-region drop-region migrate \
-		psql
+		add psql
 
 lint:
 	docker compose run --rm sqlfluff lint \
@@ -26,6 +26,19 @@ drop-region:
 	docker compose run --rm sqitch target remove $(REGION) || true
 migrate:
 	docker compose run --rm sqitch deploy --verify $(TARGET_DB)
+# make add NAME=018_table_x NOTE="adds x" [REQUIRES="010_table_fields 011_table_ndvi-points"]
+add:
+	@test -n "$(NAME)" || (echo "NAME= required"; exit 1)
+	@test -n "$(NOTE)" || (echo "NOTE= required"; exit 1)
+	docker compose run --rm \
+	  -e SQITCH_FULLNAME="$$(git config user.name)" \
+	  -e SQITCH_EMAIL="$$(git config user.email)" \
+	  sqitch add $(NAME) \
+	  $(foreach r,$(REQUIRES),--requires $(r)) \
+	  --use deploy=templates/deploy/pg.tmpl \
+	  --use revert=templates/revert/pg.tmpl \
+	  --use verify=templates/verify/pg.tmpl \
+	  -n "$(NOTE)"
 psql:
 	docker compose exec -u postgres postgres psql postgres
 

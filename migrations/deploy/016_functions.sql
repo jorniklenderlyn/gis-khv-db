@@ -2,6 +2,8 @@
 
 BEGIN;
 
+SET LOCAL ROLE gis_owner;
+
 -- средний NDVI по неделям (замена старых "YYYY".avg_ndvi_YY_20)
 -- p_crop_name: название фактической культуры поля
 -- p_field_ids: произвольная выборка полей, например ARRAY(SELECT id FROM vegetation.fields WHERE ...)
