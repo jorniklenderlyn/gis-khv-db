@@ -13,14 +13,15 @@ CREATE TABLE vegetation.analysis_results (
         PRIMARY KEY (id),
 
     CONSTRAINT analysis_results_uq_field_id_model_id
-        UNIQUE (id_field, id_model)
+        UNIQUE (field_id, model_id),
+
     -- FK
     CONSTRAINT analysis_results_fk_field_id
         FOREIGN KEY (field_id)
-        REFERENCES vegetation.fields (id)
+        REFERENCES vegetation.fields (id),
 
     CONSTRAINT analysis_results_fk_model_id
-        FOREIGN KEY (field_id)
+        FOREIGN KEY (model_id)
         REFERENCES accounting.models (id)
 );
 

@@ -32,7 +32,8 @@ CREATE TABLE vegetation.fields (
         PRIMARY KEY (id),
 
     CONSTRAINT fields_hash_uq
-        UNIQUE (hash)
+        UNIQUE (hash),
+
     -- FK
     CONSTRAINT fields_fk_district_id
         FOREIGN KEY (district_id)
@@ -44,11 +45,11 @@ CREATE TABLE vegetation.fields (
 
     CONSTRAINT fields_fk_type_usage_plan_id
         FOREIGN KEY (type_usage_plan_id)
-        REFERENCES accounting.type_usage (id),
+        REFERENCES accounting.usage_types (id),
 
     CONSTRAINT fields_fk_type_usage_fact_id
         FOREIGN KEY (type_usage_fact_id)
-        REFERENCES accounting.type_usage (id),
+        REFERENCES accounting.usage_types (id),
 
     CONSTRAINT fields_fk_crop_plan_id
         FOREIGN KEY (crop_plan_id)
@@ -68,7 +69,7 @@ CREATE TABLE vegetation.fields (
 
     CONSTRAINT fields_fk_reclamation_system_id
         FOREIGN KEY (reclamation_system_id)
-        REFERENCES vegetation.reclamation_systems (id)
+        REFERENCES reclamation.reclamation_systems (id)
 );
 
 CREATE INDEX fields_idx_geom
