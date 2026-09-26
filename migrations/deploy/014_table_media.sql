@@ -4,6 +4,7 @@ BEGIN;
 
 CREATE TABLE vegetation.media (
     id INTEGER GENERATED ALWAYS AS IDENTITY NOT NULL,
+    year SMALLINT NOT NULL,
     field_id INTEGER NOT NULL,
     reference VARCHAR NOT NULL,
     geom public.geometry(POINT, 4326) NULL,
@@ -17,8 +18,11 @@ CREATE TABLE vegetation.media (
         UNIQUE (reference),
     -- FK
     CONSTRAINT mediadate_field_fk
-        FOREIGN KEY (field_id)
-        REFERENCES vegetation.fields (id)
+        FOREIGN KEY (year, field_id)
+        REFERENCES vegetation.fields (year, id)
 );
+
+CREATE INDEX media_idx_year_field_id
+    ON vegetation.media (year, field_id);
 
 COMMIT;

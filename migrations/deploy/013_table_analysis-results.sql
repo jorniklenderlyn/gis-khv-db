@@ -4,6 +4,7 @@ BEGIN;
 
 CREATE TABLE vegetation.analysis_results (
     id INTEGER GENERATED ALWAYS AS IDENTITY NOT NULL,
+    year SMALLINT NOT NULL,
     field_id INTEGER NOT NULL,
     model_id INTEGER NOT NULL,
     results VARCHAR NOT NULL,
@@ -13,12 +14,12 @@ CREATE TABLE vegetation.analysis_results (
         PRIMARY KEY (id),
 
     CONSTRAINT analysis_results_uq_field_id_model_id
-        UNIQUE (field_id, model_id),
+        UNIQUE (year, field_id, model_id),
 
     -- FK
     CONSTRAINT analysis_results_fk_field_id
-        FOREIGN KEY (field_id)
-        REFERENCES vegetation.fields (id),
+        FOREIGN KEY (year, field_id)
+        REFERENCES vegetation.fields (year, id),
 
     CONSTRAINT analysis_results_fk_model_id
         FOREIGN KEY (model_id)

@@ -2,7 +2,7 @@
 
 BEGIN;
 
-SELECT id, field_id, reference, geom, filming_date, note
+SELECT id, year, field_id, reference, geom, filming_date, note
 FROM vegetation.media
 WHERE FALSE;
 

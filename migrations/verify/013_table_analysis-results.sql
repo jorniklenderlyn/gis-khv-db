@@ -2,7 +2,7 @@
 
 BEGIN;
 
-SELECT id, field_id, model_id, results, note
+SELECT id, year, field_id, model_id, results, note
 FROM vegetation.analysis_results
 WHERE FALSE;
 

@@ -4,6 +4,7 @@ BEGIN;
 
 CREATE TABLE vegetation.fields (
     id INTEGER GENERATED ALWAYS AS IDENTITY NOT NULL,
+    year SMALLINT NOT NULL,
     geom public.geometry(MULTIPOLYGON, 4326) NOT NULL,
     registr_number VARCHAR NULL,
     note VARCHAR NULL,
@@ -29,10 +30,10 @@ CREATE TABLE vegetation.fields (
     reclamation_system_id INTEGER,
 
     CONSTRAINT fields_pk
-        PRIMARY KEY (id),
+        PRIMARY KEY (year, id),
 
     CONSTRAINT fields_hash_uq
-        UNIQUE (hash),
+        UNIQUE (year, hash),
 
     -- FK
     CONSTRAINT fields_fk_district_id
