@@ -2,6 +2,6 @@
 
 BEGIN;
 
-DROP SCHEMA gis_vegetation;
+DROP SCHEMA vegetation;
 
 COMMIT;

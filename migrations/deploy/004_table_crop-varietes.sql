@@ -4,13 +4,13 @@ BEGIN;
 
 CREATE TABLE accounting.crop_varieties (
 
-    id integer GENERATED ALWAYS AS IDENTITY,
+    id INTEGER GENERATED ALWAYS AS IDENTITY,
 
-    name varchar NOT NULL,
+    name VARCHAR NOT NULL,
 
-    note varchar NULL,
+    note VARCHAR NULL,
 
-    crop_id integer NOT NULL,
+    crop_id INTEGER NOT NULL,
 
     CONSTRAINT crop_varieties_pk
         PRIMARY KEY (id),
@@ -18,7 +18,7 @@ CREATE TABLE accounting.crop_varieties (
     CONSTRAINT crop_varieties_uq_name_crop
         UNIQUE (name, crop_id),
 
-    CONSTRAINT crop_varieties_fk_crop
+    CONSTRAINT crop_varieties_fk_crop_id
         FOREIGN KEY (crop_id)
         REFERENCES accounting.crops (id)
 

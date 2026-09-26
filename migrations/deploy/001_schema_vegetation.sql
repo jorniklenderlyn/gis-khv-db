@@ -2,6 +2,6 @@
 
 BEGIN;
 
-CREATE SCHEMA gis_vegetation AUTHORIZATION gis_owner;
+CREATE SCHEMA vegetation AUTHORIZATION gis_owner;
 
 COMMIT;

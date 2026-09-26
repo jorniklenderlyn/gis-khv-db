@@ -4,11 +4,11 @@ BEGIN;
 
 CREATE TABLE accounting.usage_types (
 
-    id integer GENERATED ALWAYS AS IDENTITY,
+    id INTEGER GENERATED ALWAYS AS IDENTITY,
 
-    name varchar NOT NULL,
+    name VARCHAR NOT NULL,
 
-    note varchar,
+    note VARCHAR,
 
     CONSTRAINT usage_types_pk
         PRIMARY KEY (id),

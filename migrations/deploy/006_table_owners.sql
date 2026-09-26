@@ -4,11 +4,11 @@ BEGIN;
 
 CREATE TABLE accounting.owners (
 
-    id integer GENERATED ALWAYS AS IDENTITY,
+    id INTEGER GENERATED ALWAYS AS IDENTITY,
 
-    name varchar NOT NULL,
+    name VARCHAR NOT NULL,
 
-    note varchar NULL,
+    note VARCHAR NULL,
 
     CONSTRAINT owners_pk
         PRIMARY KEY (id),

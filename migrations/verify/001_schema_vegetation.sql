@@ -4,6 +4,6 @@ BEGIN;
 
 SELECT 1
 FROM pg_namespace
-WHERE nspname = 'gis-vegetation';
+WHERE nspname = 'vegetation';
 
 ROLLBACK;
