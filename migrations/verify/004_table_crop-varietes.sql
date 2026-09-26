@@ -2,21 +2,23 @@
 
 BEGIN;
 
-SELECT 'accounting.crop_varieties'::regclass;
+SELECT id, name, note, crop_id
+FROM accounting.crop_varieties
+WHERE FALSE;
 
-SELECT 1
+SELECT 1 / count(*)
 FROM pg_constraint
 WHERE conrelid = 'accounting.crop_varieties'::regclass
   AND conname = 'crop_varieties_pk';
 
-SELECT 1
+SELECT 1 / count(*)
 FROM pg_constraint
 WHERE conrelid = 'accounting.crop_varieties'::regclass
   AND conname = 'crop_varieties_uq_name_crop';
 
-SELECT 1
+SELECT 1 / count(*)
 FROM pg_constraint
 WHERE conrelid = 'accounting.crop_varieties'::regclass
-  AND conname = 'crop_varieties_fk_crop';
+  AND conname = 'crop_varieties_fk_crop_id';
 
 ROLLBACK;

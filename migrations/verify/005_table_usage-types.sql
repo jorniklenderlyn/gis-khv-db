@@ -2,19 +2,18 @@
 
 BEGIN;
 
-SELECT 1
-FROM information_schema.tables
-WHERE table_schema = 'accounting'
-  AND table_name = 'usage_types';
+SELECT id, name, note
+FROM accounting.usage_types
+WHERE FALSE;
 
-SELECT 1
+SELECT 1 / count(*)
 FROM information_schema.columns
 WHERE table_schema = 'accounting'
   AND table_name = 'usage_types'
   AND column_name = 'id'
   AND data_type = 'integer';
 
-SELECT 1
+SELECT 1 / count(*)
 FROM information_schema.columns
 WHERE table_schema = 'accounting'
   AND table_name = 'usage_types'
@@ -22,18 +21,14 @@ WHERE table_schema = 'accounting'
   AND data_type = 'character varying'
   AND is_nullable = 'NO';
 
-SELECT 1
-FROM information_schema.table_constraints
-WHERE table_schema = 'accounting'
-  AND table_name = 'usage_types'
-  AND constraint_name = 'usage_types_pk'
-  AND constraint_type = 'PRIMARY KEY';
+SELECT 1 / count(*)
+FROM pg_constraint
+WHERE conrelid = 'accounting.usage_types'::regclass
+  AND conname = 'usage_types_pk';
 
-SELECT 1
-FROM information_schema.table_constraints
-WHERE table_schema = 'accounting'
-  AND table_name = 'usage_types'
-  AND constraint_name = 'usage_types_uq_name'
-  AND constraint_type = 'UNIQUE';
+SELECT 1 / count(*)
+FROM pg_constraint
+WHERE conrelid = 'accounting.usage_types'::regclass
+  AND conname = 'usage_types_uq_name';
 
 ROLLBACK;

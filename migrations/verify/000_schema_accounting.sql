@@ -2,8 +2,6 @@
 
 BEGIN;
 
-SELECT 1
-FROM pg_namespace
-WHERE nspname = 'accounting';
+SELECT 'accounting'::regnamespace;
 
 ROLLBACK;
