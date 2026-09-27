@@ -1,6 +1,6 @@
 .PHONY: lint up down \
 		new-region drop-region migrate \
-		add psql
+		add migrate-data drop-legacy psql
 
 lint:
 	docker compose run --rm sqlfluff lint \
@@ -39,6 +39,21 @@ add:
 	  --use revert=templates/revert/pg.tmpl \
 	  --use verify=templates/verify/pg.tmpl \
 	  -n "$(NOTE)"
+# make migrate-data REGION=khv DUMP=path/to/khv.dump  (see data-migration/README.md)
+migrate-data:
+	@test -n "$(REGION)" || (echo "REGION= required"; exit 1)
+	@test -f "$(DUMP)" || (echo "DUMP= path to a pg_dump -Fc file required"; exit 1)
+	data-migration/00_restore_legacy.sh $(REGION) "$(DUMP)"
+	@for f in 01_audit 02_dictionaries 03_fields 04_points \
+	          05_media_analysis 06_sequences 07_reconcile; do \
+	  echo "==> $$f"; \
+	  docker compose exec -T -u postgres postgres \
+	    psql -X -v ON_ERROR_STOP=1 -d $(REGION) -f - < data-migration/$$f.sql || exit 1; \
+	done
+drop-legacy:
+	@test -n "$(REGION)" || (echo "REGION= required"; exit 1)
+	docker compose exec -T -u postgres postgres \
+	  psql -X -v ON_ERROR_STOP=1 -d $(REGION) -f - < data-migration/99_drop_legacy.sql
 psql:
 	docker compose exec -u postgres postgres psql postgres
 
