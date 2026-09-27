@@ -8,6 +8,12 @@
 - [Database Structure](./db.drawio)
 - [Roles](#roles)
 - [Privileges Matrix](./privileges_matrix.ods)
+- [Partitioning](#partitioning)
+  - [Partitioned Tables](#partitioned-tables)
+  - [Partitions Are Not Part of Migrations](#partitions-are-not-part-of-migrations)
+  - [Creating Partitions](#creating-partitions)
+  - [Naming Convention](#naming-convention)
+  - [Constraints Imposed by Partitioning](#constraints-imposed-by-partitioning)
 - [Migration](#migration)
   - [Schema Migration](#schema-migration)
     - [Migration Roles & Ownership](#migration-roles--ownership)
@@ -97,6 +103,192 @@ Privileges follow a deny-by-default model; see the [Privileges Matrix](./privile
 * `gis_app`, `gis_edit`, `gis_read` get `CONNECT` on the region database (bootstrap) and schema/table privileges from migration `017_privileges`.
 * Tables and partitions created later by `gis_owner` receive the same privileges automatically via `ALTER DEFAULT PRIVILEGES`.
 * Every migration must run `SET LOCAL ROLE gis_owner;` right after `BEGIN;`. `verify/017_privileges.sql` fails if any object in the project schemas is not owned by `gis_owner`.
+
+## Partitioning
+
+### Partitioned Tables
+
+The large, year-scoped tables in schema `vegetation` are declaratively partitioned:
+
+| Table | Partition key chain | Depth |
+|-------|---------------------|-------|
+| `vegetation.fields` | `year` | 1 |
+| `vegetation.ndvi_points` | `year` -> `pixel_size` -> `version` | 3 |
+| `vegetation.evi_points` | `year` -> `pixel_size` -> `version` | 3 |
+| `vegetation.analysis_results` | `year` | 1 |
+| `vegetation.media` | `year` | 1 |
+
+All levels use `PARTITION BY LIST`, because the key values are a small,
+enumerable set (a year, a pixel size such as 10/20/30, a version number) rather
+than a continuous range.
+
+Only the **top level** (`PARTITION BY LIST (year)`) is declared by the
+migrations, since that is the part of the partitioning that belongs to the
+table definition itself. For `ndvi_points` and `evi_points` the nesting into
+`pixel_size` and then `version` is expressed when the partitions themselves are
+created — a year partition is created as `PARTITION BY LIST (pixel_size)`, a
+pixel-size partition as `PARTITION BY LIST (version)`, and the version
+partition is the leaf that actually stores rows.
+
+### Partitions Are Not Part of Migrations
+
+**Partitions are created on demand and are deliberately not part of any
+migration.**
+
+A migration describes the **logical schema** — tables, columns, constraints,
+indexes, functions, privileges: the contract the application codes against.
+A partition describes the **physical layout** — which subset of rows lives in
+which physical relation. Adding the year 2027, the pixel size 30 or the
+version 2 does not change the logical schema: no column appears, no constraint
+changes, no query needs rewriting. The application sees the same
+`vegetation.ndvi_points` before and after.
+
+Consequences of keeping them out of the migrations:
+
+* The set of partitions depends on the data a region actually has. Two regions
+  deployed from the same migrations legitimately hold different partitions, so
+  a partition list in a migration would be wrong for someone.
+* Migrations stay deterministic and re-runnable. A migration that creates "the
+  current year" would produce a different database depending on when it is
+  deployed, and would need a new migration every year forever.
+* `sqitch verify` checks that a table **is** partitioned by the expected key
+  (see `migrations/verify/010_table_fields.sql` and friends); it does not check
+  **which** partitions exist, because that is not a schema property.
+
+Creating partitions is therefore an operational task, run by the process that
+loads data for a new year / pixel size / version, or by an operator ahead of
+that load. The only hard requirement is timing: a row cannot be inserted
+before a leaf partition that accepts it exists. `INSERT` fails with
+`no partition of relation ... found for row`.
+
+### Creating Partitions
+
+Partitions must be created by `gis_owner`, exactly like migration objects. That
+way they are owned by `gis_owner` and `gis_app` / `gis_edit` / `gis_read` pick
+up their privileges automatically from the `ALTER DEFAULT PRIVILEGES` set in
+`017_privileges` — no `GRANT` per partition is needed.
+
+Single-level tables (`fields`, `analysis_results`, `media`) — one statement per
+year:
+
+```sql
+SET ROLE gis_owner;
+
+CREATE TABLE vegetation.fields_2027
+    PARTITION OF vegetation.fields
+    FOR VALUES IN (2027);
+
+CREATE TABLE vegetation.analysis_results_2027
+    PARTITION OF vegetation.analysis_results
+    FOR VALUES IN (2027);
+
+CREATE TABLE vegetation.media_2027
+    PARTITION OF vegetation.media
+    FOR VALUES IN (2027);
+```
+
+Three-level tables (`ndvi_points`, `evi_points`) — the year and pixel-size
+levels are themselves partitioned, only the version level stores rows:
+
+```sql
+SET ROLE gis_owner;
+
+-- level 1: year, subdivided by pixel size
+CREATE TABLE vegetation.ndvi_points_2027
+    PARTITION OF vegetation.ndvi_points
+    FOR VALUES IN (2027)
+    PARTITION BY LIST (pixel_size);
+
+-- level 2: pixel size, subdivided by version
+CREATE TABLE vegetation.ndvi_points_2027_p20
+    PARTITION OF vegetation.ndvi_points_2027
+    FOR VALUES IN (20)
+    PARTITION BY LIST (version);
+
+-- level 3: version — the leaf, holds the rows
+CREATE TABLE vegetation.ndvi_points_2027_p20_v1
+    PARTITION OF vegetation.ndvi_points_2027_p20
+    FOR VALUES IN (1);
+```
+
+Each new pixel size for an existing year adds a level-2 partition plus at least
+one leaf; each new version for an existing pixel size adds only a leaf:
+
+```sql
+SET ROLE gis_owner;
+
+-- new pixel size 10 within the existing year 2027
+CREATE TABLE vegetation.ndvi_points_2027_p10
+    PARTITION OF vegetation.ndvi_points_2027
+    FOR VALUES IN (10)
+    PARTITION BY LIST (version);
+
+CREATE TABLE vegetation.ndvi_points_2027_p10_v1
+    PARTITION OF vegetation.ndvi_points_2027_p10
+    FOR VALUES IN (1);
+
+-- reprocessed version 2 of the existing 2027 / 20 m data
+CREATE TABLE vegetation.ndvi_points_2027_p20_v2
+    PARTITION OF vegetation.ndvi_points_2027_p20
+    FOR VALUES IN (2);
+```
+
+Indexes declared on the parent (`fields_idx_geom`, `ndvi_points_idx_geom`,
+`ndvi_points_idx_field_id`, `media_idx_year_field_id`, …) and the primary key /
+unique constraints are propagated to every new partition automatically. Nothing
+has to be recreated per partition.
+
+Dropping data for a year is a `DROP TABLE` of its top-level partition, which
+removes the whole subtree:
+
+```sql
+SET ROLE gis_owner;
+DROP TABLE vegetation.ndvi_points_2027;
+```
+
+To list what currently exists in a region:
+
+```sql
+SELECT c.oid::regclass AS partition,
+       pg_get_expr(c.relpartbound, c.oid) AS bounds,
+       pg_get_partkeydef(c.oid) AS subpartitioned_by
+FROM pg_class AS c
+INNER JOIN pg_inherits AS i ON i.inhrelid = c.oid
+WHERE i.inhparent = 'vegetation.ndvi_points'::regclass
+ORDER BY 1;
+```
+
+### Naming Convention
+
+Partition names are not enforced by the database, but keep them predictable:
+
+```text
+<table>_<year>                      -- year level
+<table>_<year>_p<pixel_size>        -- pixel size level
+<table>_<year>_p<pixel_size>_v<ver> -- version level (leaf)
+```
+
+For example `ndvi_points_2027_p20_v1` is 2027, 20 m pixels, version 1.
+
+### Constraints Imposed by Partitioning
+
+PostgreSQL requires every partition key column to be part of every unique
+index, which is why the keys are in the primary keys and unique constraints:
+
+* `fields`: `PRIMARY KEY (year, id)`, `UNIQUE (year, hash)`
+* `ndvi_points` / `evi_points`: `PRIMARY KEY (year, pixel_size, version, id)`,
+  `UNIQUE (year, pixel_size, version, x, y)`
+* `analysis_results`: `PRIMARY KEY (year, id)`, `UNIQUE (year, field_id, model_id)`
+* `media`: `PRIMARY KEY (year, id)`, `UNIQUE (year, reference)`
+
+`id` is therefore only unique **within** a year (and, for the point tables,
+within a year/pixel size/version). Rows are referenced by the full composite
+key — that is why the foreign keys to `fields` are `(year, field_id) ->
+fields (year, id)`.
+
+Queries should filter on `year` (and on `pixel_size` / `version` for the point
+tables) so the planner can prune partitions; without those predicates every
+partition is scanned.
 
 ## Migration
 

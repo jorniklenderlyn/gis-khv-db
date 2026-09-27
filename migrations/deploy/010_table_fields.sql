@@ -73,7 +73,10 @@ CREATE TABLE vegetation.fields (
     CONSTRAINT fields_fk_reclamation_system_id
         FOREIGN KEY (reclamation_system_id)
         REFERENCES reclamation.reclamation_systems (id)
-);
+)
+-- партиции по годам создаются по факту появления данных за год,
+-- см. docs/README.md#partitioning
+PARTITION BY LIST (year);
 
 CREATE INDEX fields_idx_geom
     ON vegetation.fields

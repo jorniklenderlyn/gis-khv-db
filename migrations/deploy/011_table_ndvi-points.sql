@@ -82,7 +82,11 @@ CREATE TABLE vegetation.ndvi_points (
     CONSTRAINT ndvi_points_fk_crop_pixel_result_id
         FOREIGN KEY (crop_pixel_result_id) REFERENCES accounting.crops (id)
 
-) PARTITION BY LIST (year);
+)
+-- трёхуровневое секционирование year -> pixel_size -> version;
+-- сами партиции создаются по факту появления данных,
+-- см. docs/README.md#partitioning
+PARTITION BY LIST (year);
 
 CREATE INDEX ndvi_points_idx_field_id
     ON vegetation.ndvi_points (field_id);

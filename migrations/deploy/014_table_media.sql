@@ -14,7 +14,7 @@ CREATE TABLE vegetation.media (
     note VARCHAR NULL,
 
     CONSTRAINT mediadate_pk
-        PRIMARY KEY (id),
+        PRIMARY KEY (year, id),
 
     CONSTRAINT mediadate_reference_uq
         UNIQUE (year, reference),
@@ -22,7 +22,10 @@ CREATE TABLE vegetation.media (
     CONSTRAINT mediadate_field_fk
         FOREIGN KEY (year, field_id)
         REFERENCES vegetation.fields (year, id)
-);
+)
+-- партиции по годам создаются по факту появления данных за год,
+-- см. docs/README.md#partitioning
+PARTITION BY LIST (year);
 
 CREATE INDEX media_idx_year_field_id
     ON vegetation.media (year, field_id);

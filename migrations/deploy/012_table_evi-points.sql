@@ -82,7 +82,11 @@ CREATE TABLE vegetation.evi_points (
     CONSTRAINT evi_points_fk_crop_pixel_result_id
         FOREIGN KEY (crop_pixel_result_id) REFERENCES accounting.crops (id)
 
-) PARTITION BY LIST (year);
+)
+-- трёхуровневое секционирование year -> pixel_size -> version;
+-- сами партиции создаются по факту появления данных,
+-- см. docs/README.md#partitioning
+PARTITION BY LIST (year);
 
 CREATE INDEX evi_points_idx_field_id
     ON vegetation.evi_points (field_id);

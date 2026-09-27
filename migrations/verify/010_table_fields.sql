@@ -10,4 +10,11 @@ SELECT id, year, geom, registr_number, intern_number, district_id, owner_id,
 FROM vegetation.fields
 WHERE FALSE;
 
+-- секционирование по годам (LIST (year)); 1 / count(*) падает делением на ноль
+SELECT 1 / count(*)
+FROM pg_class AS c
+WHERE c.oid = 'vegetation.fields'::regclass
+  AND c.relkind = 'p'
+  AND pg_get_partkeydef(c.oid) = 'LIST (year)';
+
 ROLLBACK;
