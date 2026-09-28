@@ -1,6 +1,6 @@
 .PHONY: lint up down \
 		new-region drop-region migrate \
-		add psql
+		add partitions psql
 
 lint:
 	docker compose run --rm sqlfluff lint \
@@ -39,6 +39,15 @@ add:
 	  --use revert=templates/revert/pg.tmpl \
 	  --use verify=templates/verify/pg.tmpl \
 	  -n "$(NOTE)"
+# make partitions REGION=khv  (declare the region's years in
+# bootstrap/partitions/$(REGION).sql first; idempotent, safe to re-run)
+partitions:
+	@test -n "$(REGION)" || (echo "REGION= required"; exit 1)
+	@test -f "bootstrap/partitions/$(REGION).sql" \
+	  || (echo "bootstrap/partitions/$(REGION).sql not found"; exit 1)
+	docker compose exec -u postgres postgres \
+	  psql -X -v ON_ERROR_STOP=1 -d $(REGION) \
+	  -f /bootstrap/partitions/$(REGION).sql
 psql:
 	docker compose exec -u postgres postgres psql postgres
 

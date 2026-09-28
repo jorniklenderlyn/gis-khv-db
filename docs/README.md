@@ -12,6 +12,7 @@
   - [Partitioned Tables](#partitioned-tables)
   - [Partitions Are Not Part of Migrations](#partitions-are-not-part-of-migrations)
   - [Creating Partitions](#creating-partitions)
+  - [Per-Region Partition Scripts](#per-region-partition-scripts)
   - [Naming Convention](#naming-convention)
   - [Constraints Imposed by Partitioning](#constraints-imposed-by-partitioning)
 - [Migration](#migration)
@@ -119,7 +120,8 @@ The large, year-scoped tables in schema `vegetation` are declaratively partition
 | `vegetation.media` | `year` | 1 |
 
 All levels use `PARTITION BY LIST`, because the key values are a small,
-enumerable set (a year, a pixel size such as 10/20/30, a version number) rather
+enumerable set (a year, a pixel size such as 10/20/30/60, a version number)
+rather
 than a continuous range.
 
 Only the **top level** (`PARTITION BY LIST (year)`) is declared by the
@@ -160,6 +162,11 @@ loads data for a new year / pixel size / version, or by an operator ahead of
 that load. The only hard requirement is timing: a row cannot be inserted
 before a leaf partition that accepts it exists. `INSERT` fails with
 `no partition of relation ... found for row`.
+
+The project keeps that operational task in `bootstrap/partitions/` — one
+script per region, listing what that region holds — see
+[Per-Region Partition Scripts](#per-region-partition-scripts). The section
+below describes the raw DDL those scripts generate.
 
 ### Creating Partitions
 
@@ -256,6 +263,92 @@ FROM pg_class AS c
 INNER JOIN pg_inherits AS i ON i.inhrelid = c.oid
 WHERE i.inhparent = 'vegetation.ndvi_points'::regclass
 ORDER BY 1;
+```
+
+### Per-Region Partition Scripts
+
+The DDL above is not retyped from this document every time. `bootstrap/partitions/`
+holds one script per region, listing the partitions that region actually has:
+
+```text
+bootstrap/partitions/
+├── README.md       -- usage
+├── _template.sql   -- starting point for a new region
+└── khv.sql         -- what region khv holds
+```
+
+Apply a region's script with:
+
+```bash
+make partitions REGION=khv
+```
+
+The target runs `bootstrap/partitions/$REGION.sql` against database `$REGION`
+inside the postgres container (the `bootstrap/` folder is already mounted there
+read-only).
+
+A script is organised by table and runs inside one transaction after
+`SET LOCAL ROLE gis_owner`. Each of the five partitioned tables gets its own
+anonymous PL/pgSQL `DO` block, driven by a `v_years` declaration:
+
+```sql
+-- vegetation.fields
+v_years CONSTANT integer [] := ARRAY[
+    2019, 2020, 2021, 2022, 2023, 2024, 2025
+];
+```
+
+`ndvi_points` and `evi_points` carry a second declaration, the pixel sizes and
+the versions held for each:
+
+```sql
+FROM (VALUES
+    (10, ARRAY[1]),
+    (20, ARRAY[1, 2]),
+    (30, ARRAY[1, 2]),
+    (60, ARRAY[1, 2])
+) AS s (pixel_size, versions)
+```
+
+The blocks are deliberately kept separate rather than merged into one loop over
+all tables. Each table's year list is independent — a region can hold `media`
+for a year it has no NDVI for, and NDVI and EVI do not hold the same pixel
+sizes — so each table's set is edited in one place without touching the
+others. The cost is repetition between the blocks, which is accepted in
+exchange for that independence.
+
+Adding a year is one entry in a `v_years`; adding a pixel size or a reprocessed
+version is one row in a `VALUES` list. If a single year ever diverges from the
+rest for one table, take it out of that block's `v_years` and write its
+partitions out explicitly as `CREATE TABLE ... PARTITION OF` statements.
+
+The blocks are anonymous, so nothing is installed into the schema and the
+logical schema stays identical on every shard. They run with the session's
+current role, which is why `SET LOCAL ROLE gis_owner` above them still applies.
+Local variables are prefixed `v_` so they cannot collide with the `version` and
+`pixel_size` column names, which PL/pgSQL would otherwise reject as ambiguous.
+
+Re-running is safe. Every statement is `CREATE TABLE IF NOT EXISTS`, so
+existing partitions are skipped with a `NOTICE`. Adding a year, a pixel size or
+a reprocessed version means appending its statements and running the target
+again. Note that `IF NOT EXISTS` matches on the **name**, not on the partition
+bound — so keep to the [naming convention](#naming-convention); a partition for
+the same bound created under a different name is not detected, and the `CREATE`
+then fails with `partition ... would overlap`.
+
+Each script ends with two checks: an assertion that every partition is owned by
+`gis_owner`, written as the same division-by-zero idiom the verify scripts use,
+and a report of every partition the region now has. The first one guards the
+only silent failure mode of creating partitions outside a migration — a
+partition created by another role does not pick up the `ALTER DEFAULT
+PRIVILEGES` from `017_privileges`, so `gis_app` / `gis_edit` / `gis_read`
+receive nothing on it and nobody notices until a query hits that one year.
+(A *missing* partition, by contrast, is loud: the `INSERT` fails.)
+
+To add a region, copy the template:
+
+```bash
+cp bootstrap/partitions/_template.sql bootstrap/partitions/<region>.sql
 ```
 
 ### Naming Convention
