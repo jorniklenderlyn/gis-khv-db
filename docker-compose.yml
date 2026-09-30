@@ -23,7 +23,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
-    networks: [gisnet]
+    networks: [geo-data]
   sqitch:
     image: sqitch/sqitch:v1.6.0
     working_dir: /work/migrations
@@ -32,7 +32,7 @@ services:
       - ./secrets/.pgpass:/run/secrets/.pgpass:ro
     environment:
       PGPASSFILE: /run/secrets/.pgpass
-    networks: [gisnet]
+    networks: [geo-data]
   sqlfluff:
     image: sqlfluff/sqlfluff:4.3.0
     working_dir: /project
@@ -44,5 +44,6 @@ volumes:
   pgdata:
 
 networks:
-  gisnet:
+  geo-data:
+    name: geo-data
     driver: bridge
