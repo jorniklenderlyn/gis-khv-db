@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgis/postgis:13-3.4
+    image: postgis/postgis:18-3.6-alpine
+    platform: linux/amd64
     environment:
       POSTGRES_USER: ${PG_SUPERUSER:?PG_SUPERUSER is required}
       POSTGRES_PASSWORD: ${PG_SUPERUSER_PASSWORD:?PG_SUPERUSER_PASSWORD is required}
@@ -8,14 +9,14 @@ services:
     ports:
       - "127.0.0.1:${PG_HOST_PORT}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./config/pg_hba.conf:/etc/lib/postgresql/pg_hba.conf:ro
+      - pgdata:/var/lib/postgresql
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
       - ./bootstrap:/bootstrap:ro
       - ./bootstrap/init/roles.sql:/docker-entrypoint-initdb.d/01_roles.sql:ro
     command:
       - postgres
       - -c
-      - hba_file=/etc/lib/postgresql/pg_hba.conf
+      - hba_file=/etc/postgresql/pg_hba.conf
       - -c
       - password_encryption=scram-sha-256
     healthcheck:
