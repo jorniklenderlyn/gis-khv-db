@@ -13,6 +13,7 @@ services:
       - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
       - ./bootstrap:/bootstrap:ro
       - ./bootstrap/init/roles.sql:/docker-entrypoint-initdb.d/01_roles.sql:ro
+      - ./bootstrap/init/privileges.sql:/docker-entrypoint-initdb.d/02_privileges.sql:ro
     command:
       - postgres
       - -c
