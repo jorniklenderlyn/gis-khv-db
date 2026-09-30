@@ -17,7 +17,7 @@ new-region:
 	docker compose run --rm sqitch target show $(REGION) >/dev/null 2>&1 \
 	  || docker compose run --rm sqitch target add $(REGION) \
 	     db:pg://gis_migrator@postgres:5432/$(REGION)
-	docker compose --progress quiet run --rm sqitch deploy --verify $(REGION)
+	docker compose --progress quiet run --rm --user root sqitch deploy --verify $(REGION)
 drop-region:
 	@test -n "$(REGION)" || (echo "REGION= required"; exit 1)
 	@read -p "Drop database '$(REGION)'? [y/N] " ans; [ "$$ans" = "y" ]
