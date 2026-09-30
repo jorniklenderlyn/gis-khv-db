@@ -28,6 +28,12 @@ services:
     networks: [geo-data]
   sqitch:
     image: sqitch/sqitch:v1.6.0
+    secrets:
+    - source: pgpass
+      target: .pgpass
+      uid: "1024"
+      gid: "1024"
+      mode: 0600
     working_dir: /work/migrations
     volumes:
       - ./migrations:/work/migrations
@@ -41,6 +47,10 @@ services:
     volumes:
       - .:/project:ro
     command: lint migrations/deploy/ migrations/revert migrations/verify bootstrap/
+
+secrets:
+  pgpass:
+    file: ./secrets/.pgpass
 
 volumes:
   pgdata:
