@@ -2,3 +2,5 @@
 secrets
 .scripts
 migrations/sqitch.conf
+data_from_old/
+data_from_new/
