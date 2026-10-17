@@ -8,6 +8,7 @@
 - [Database Structure](./db.drawio)
 - [Roles](#roles)
 - [Privileges Matrix](./privileges_matrix.ods)
+- [GeoServer Access](#geoserver-access)
 - [Partitioning](#partitioning)
   - [Partitioned Tables](#partitioned-tables)
   - [Partitions Are Not Part of Migrations](#partitions-are-not-part-of-migrations)
@@ -95,6 +96,8 @@ Roles are created during the bootstrap phase because PostgreSQL roles are cluste
 |gis_read_user|Yes  | gis_read   | Login role for users/services that require read-only access |
 |gis_edit     |No   | -          | `gis` database data editor group |
 |gis_edit_user|Yes  | gis_edit   | Login role for `gis_edit` uses for editing data in db |
+|gis_geoserver  |No   | -          | Read-only access to schema `geoserver` only (published layers) |
+|gis_geoserver_user|Yes| gis_geoserver | GeoServer's PostGIS datastore login |
 
 ### Privileges
 
@@ -103,7 +106,68 @@ Privileges follow a deny-by-default model; see the [Privileges Matrix](./privile
 * `PUBLIC` has no access to region databases: `CONNECT`/`TEMPORARY` are revoked and `CREATE` on schema `public` is revoked (`bootstrap/region/database_access.sql`). `USAGE` on schema `public` is kept because PostGIS lives there.
 * `gis_app`, `gis_edit`, `gis_read` get `CONNECT` on the region database (bootstrap) and schema/table privileges from migration `017_privileges`.
 * Tables and partitions created later by `gis_owner` receive the same privileges automatically via `ALTER DEFAULT PRIVILEGES`.
+* `gis_geoserver` gets `CONNECT` (bootstrap) and `SELECT` on schema `geoserver` only (migration `018_schema_geoserver`); it has no access to `accounting`, `vegetation`, `reclamation`. See [GeoServer Access](#geoserver-access).
 * Every migration must run `SET LOCAL ROLE gis_owner;` right after `BEGIN;`. `verify/017_privileges.sql` fails if any object in the project schemas is not owned by `gis_owner`.
+
+## GeoServer Access
+
+GeoServer (deployed from `gis-khv-infra`) connects to each region database as
+`gis_geoserver_user` over the `geo-data` network and publishes **only** the
+views in schema `geoserver`:
+
+| View | Source | Notes |
+|------|--------|-------|
+| `geoserver.fields` | `vegetation.fields` + district/crop names | no owner, hash, notes, fertilizers |
+| `geoserver.ndvi_points` | `vegetation.ndvi_points` | rows with `geom IS NULL` are skipped; all 52 weekly values |
+
+Why a separate schema of views instead of granting `gis_read`:
+
+* **Contract.** GeoServer layer configs (in its `data_dir`) point at these
+  views. Renaming or splitting a table changes the view, not GeoServer.
+* **Least privilege.** The views run with the owner's rights
+  (`security_invoker` is deliberately off), so `gis_geoserver` can read the
+  published columns without any access to the underlying tables.
+  `verify/018_schema_geoserver.sql` fails if that changes.
+* **Partitions.** GeoServer's PostGIS store may not list
+  partitioned parent tables; a plain view is always listed. Filtering a layer by
+  `year` / `pixel_size` / `version` still prunes partitions through the view.
+
+To publish something new, add a view to schema `geoserver` in a new
+migration. It gets `SELECT` for `gis_geoserver` automatically
+(`ALTER DEFAULT PRIVILEGES` from `018_schema_geoserver`).
+
+GeoServer cannot detect a primary key on a view and numbers features itself.
+That is fine for WMS and vector tiles; if WFS with stable feature ids is ever
+needed, register the keys in a `gt_pk_metadata` table.
+
+### Enabling on an Existing Cluster
+
+`bootstrap/init/roles.sql` runs only when the cluster is initialised, so on
+a cluster created before `gis_geoserver` existed, create the roles once
+(idempotent):
+
+```bash
+docker compose exec -u postgres postgres psql -v ON_ERROR_STOP=1 postgres -c "
+DO \$\$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gis_geoserver') THEN
+    CREATE ROLE gis_geoserver NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gis_geoserver_user') THEN
+    CREATE ROLE gis_geoserver_user LOGIN; END IF;
+END \$\$;
+GRANT gis_geoserver TO gis_geoserver_user;"
+```
+
+Then, for every region: re-run `make new-region REGION=<region>` (the
+database is kept; it re-applies `database_access.sql`, which now grants
+`CONNECT` to `gis_geoserver`, and deploys `018_schema_geoserver`). Finally set
+the password as in [Password Setup](#password-setup):
+
+```sql
+ALTER ROLE gis_geoserver_user PASSWORD '<password>';
+```
+
+The roles must exist **before** `make new-region` or `018_schema_geoserver`
+runs: both fail with `role "gis_geoserver" does not exist` otherwise.
 
 ## Partitioning
 
